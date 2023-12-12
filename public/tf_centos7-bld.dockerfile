@@ -4,6 +4,9 @@ LABEL maintainer="bnelson619"
 LABEL org.opencontainers.image.source https://github.com/bnelson619/buildpro
 SHELL ["/bin/bash", "-c"]
 USER 0
+# Base centos7-pro uses Python 3.6 which is incompatible with the ML python
+# packages.  This overwrites the scl scripts so that Python3.6 is not used.
+COPY scripts/ /usr/local/bpbin
 # yum repositories
 RUN yum -y update \
   && yum clean all \
@@ -134,37 +137,37 @@ RUN mkdir -p ${EXTERN_DIR} \
   && export XP_DL=releases/download/${XP_VER}/externpro-${XP_VER}-${GCC_VER}-64-$(uname -s).tar.xz \
   && wget -qO- "https://github.com/smanders/externpro/${XP_DL}" | tar -xJ -C ${EXTERN_DIR} \
   && unset XP_DL
-# Latest Python 
-RUN wget -qO- https://ftp.openssl.org/source/openssl-1.1.1k.tar.gz | tar -xz -C /tmp/ \ 
-    && cd /tmp/openssl-1.1.1k \ 
-    && ./config --prefix=/usr --openssldir=/etc/ssl --libdir=lib no-shared zlib-dynamic \
+# Latest Python
+RUN wget -qO- https://ftp.openssl.org/source/openssl-1.1.1k.tar.gz | tar -xz -C /tmp/ \
+    && cd /tmp/openssl-1.1.1k \
+    && ./config --prefix=/opt/openssl --openssldir=/opt/openssl shared zlib \
     && make -j16 \
     && make install \
     && cd \
-    && rm -rf /tmp/openssl-1.1.1k 
+    && rm -rf /tmp/openssl-1.1.1k
 RUN yum -y install libffi-devel \
     && yum -y install sqlite-devel \
     && wget -qO- https://www.python.org/ftp/python/3.11.0/Python-3.11.0.tgz | tar -xz -C /tmp \
     && cd /tmp/Python-3.11.0 \
-    && ./configure --enable-optimizations \
+    && ./configure --enable-optimizations --with-openssl=/opt/openssl \
     && make -j12 \
     && make install \
     && cd \
     && rm -rf /tmp/Python-3.11.0 \
     && pip3 install --upgrade pip
 # Tensorflow binaries
-RUN mkdir -p /opt/extern/tf \ 
+RUN mkdir -p /opt/extern/tf \
     && wget -qO- https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-2.14.0.tar.gz | tar -xz -C /opt/extern/tf \
     && mkdir -p /opt/extern/cudnn \
-    && wget -qO- https://isrhub.usurf.usu.edu/bnelson/MLBinaries/raw/master/cudnn-linux-x86_64-8.9.5.29_cuda11-archive.tar.xz | tar -xJ -C /opt/extern/cudnn \ 
-    && cp /opt/extern/cudnn/cudnn-linux-x86_64-8.9.5.29_cuda11-archive/include/cudnn*.h /usr/local/cuda/include \ 
-    && cp -P /opt/extern/cudnn/cudnn-linux-x86_64-8.9.5.29_cuda11-archive/lib/libcudnn* /usr/local/cuda/lib64 \ 
+    && wget -qO- https://isrhub.usurf.usu.edu/bnelson/MLBinaries/raw/master/cudnn-linux-x86_64-8.9.5.29_cuda11-archive.tar.xz | tar -xJ -C /opt/extern/cudnn \
+    && cp /opt/extern/cudnn/cudnn-linux-x86_64-8.9.5.29_cuda11-archive/include/cudnn*.h /usr/local/cuda/include \
+    && cp -P /opt/extern/cudnn/cudnn-linux-x86_64-8.9.5.29_cuda11-archive/lib/libcudnn* /usr/local/cuda/lib64 \
     && chmod a+r /usr/local/cuda/include/cudnn*.h /usr/local/cuda/lib64/libcudnn* \
     && wget -P /usr/local/cuda/lib64 https://isrhub.usurf.usu.edu/bnelson/MLBinaries/raw/master/libcurand.so.10.2.10.50 \
     && wget -P /usr/local/cuda/lib64 https://isrhub.usurf.usu.edu/bnelson/MLBinaries/raw/master/libcurand.so \
     && wget -P /usr/local/cuda/lib64 https://isrhub.usurf.usu.edu/bnelson/MLBinaries/raw/master/libcurand.so.10 \
     && wget -P /usr/local/cuda/lib64 https://isrhub.usurf.usu.edu/bnelson/MLBinaries/raw/master/libcurand.so.10.2.10.50 \
-    && wget -P /usr/local/cuda/lib64 https://isrhub.usurf.usu.edu/bnelson/MLBinaries/raw/master/libcurand_static.a 
+    && wget -P /usr/local/cuda/lib64 https://isrhub.usurf.usu.edu/bnelson/MLBinaries/raw/master/libcurand_static.a
 ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 # Tensorflow python
 RUN yum -y install rh-python36-python-tkinter.x86_64 \
@@ -178,9 +181,7 @@ RUN yum -y install rh-python36-python-tkinter.x86_64 \
     && pip3 install jupyterlab \
     && pip3 install ipyflow \
     && pip3 install ipykernel \
-    && pip3 install dvc 
-COPY scripts/ /usr/local/bpbin
-COPY git-prompt.sh /etc/profile.d/
+    && pip3 install dvc
 # && sudo pip install tensorflow[and-cuda] tensorflow-datasets matplotlib visualkeras pydot"
 #TENSORFLOWPIP1="sudo pip install scipy ipympl jupyter jupyterlab papermill ipyflow ipykernel && sudo pip install dvc"
 # externpro
