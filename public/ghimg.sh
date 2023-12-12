@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 cd "$( dirname "$0" )"
-gtag=`git describe --tags`
-if [ -n "$(git status --porcelain --untracked=no)" ] || [[ ${gtag} == *"-g"* ]]; then
-  gtag=latest
-fi
+gtag=23.04
+tftag="tf2.14"
+tag=${gtag}_${tftag}
 # build ghcr.io images
-for img in centos7-run centos7-pro centos7-bld centos7-dev
+for img in tf_centos7-bld
 do
-  pkg=ghcr.io/smanders/buildpro/${img}:${gtag}
+  pkg=ghcr.io/bnelson619/buildpro/${img}:${tag}
   time docker image build \
     --network=host \
     --build-arg BPROTAG=${gtag} \
+    --build-arg TFTAG=${tftag} \
     --file ${img}.dockerfile \
-    --tag ghcr.io/smanders/buildpro/${img}:latest \
+    --tag ghcr.io/bnelson619/buildpro/${img}:latest \
     --tag ${pkg} .
-  docker push ghcr.io/smanders/buildpro/${img}:${gtag}
+  docker push ghcr.io/bnelson619/buildpro/${img}:${tag}
 done
 docker image ls
