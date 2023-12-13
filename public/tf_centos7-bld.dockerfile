@@ -138,18 +138,21 @@ RUN mkdir -p ${EXTERN_DIR} \
   && wget -qO- "https://github.com/smanders/externpro/${XP_DL}" | tar -xJ -C ${EXTERN_DIR} \
   && unset XP_DL
 # Latest Python
-RUN wget -qO- https://ftp.openssl.org/source/openssl-1.1.1k.tar.gz | tar -xz -C /tmp/ \
-    && cd /tmp/openssl-1.1.1k \
-    && ./config --prefix=/opt/openssl --openssldir=/opt/openssl shared zlib \
+RUN wget -qO- https://www.openssl.org/source/openssl-1.1.1w.tar.gz | tar -xz -C /tmp/ \
+    && cd /tmp/openssl-1.1.1w \
+    && ./config --prefix=/usr/local/openssl --openssldir=/usr/local/openssl \
     && make -j16 \
     && make install \
+    && ldconfig \
     && cd \
-    && rm -rf /tmp/openssl-1.1.1k
+    && rm -rf /tmp/openssl-1.1.1w
+ENV LD_LIBRARY_PATH=/usr/local/openssl/lib:$LD_LIBRARY_PATH
+ENV PATH=/usr/local/openssl/bin:$PATH
 RUN yum -y install libffi-devel \
     && yum -y install sqlite-devel \
-    && wget -qO- https://www.python.org/ftp/python/3.11.0/Python-3.11.0.tgz | tar -xz -C /tmp \
-    && cd /tmp/Python-3.11.0 \
-    && ./configure --enable-optimizations --with-openssl=/opt/openssl \
+    && wget -qO- https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz | tar -xz -C /tmp \
+    && cd /tmp/Python-3.11.4 \
+    && LDFLAGS="${LDFLAGS} -Wl,-rpath=/usr/local/openssl/lib" ./configure --with-openssl=/usr/local/openssl \
     && make -j12 \
     && make install \
     && cd \
