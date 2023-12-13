@@ -22,6 +22,7 @@ RUN yum -y update \
      xeyes \
      Xvfb \
      bzip2-libs \
+     bzip2-devel \
      yum-utils `#yum-config-manager` \
   && yum clean all
 # lcov (and LaTeX?) deps
