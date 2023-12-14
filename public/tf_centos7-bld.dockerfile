@@ -18,11 +18,11 @@ RUN yum -y update \
      iproute \
      libSM-devel \
      rpm-build \
-     unixODBC-devel \
      xeyes \
      Xvfb \
      bzip2-libs \
      bzip2-devel \
+     tcl # sqlite3 \
      yum-utils `#yum-config-manager` \
   && yum clean all
 # lcov (and LaTeX?) deps
@@ -139,6 +139,14 @@ RUN mkdir -p ${EXTERN_DIR} \
   && export XP_DL=releases/download/${XP_VER}/externpro-${XP_VER}-${GCC_VER}-64-$(uname -s).tar.xz \
   && wget -qO- "https://github.com/smanders/externpro/${XP_DL}" | tar -xJ -C ${EXTERN_DIR} \
   && unset XP_DL
+# Python dependencies
+RUN wget -qO- https://github.com/sqlite/sqlite/archive/refs/tags/version-3.8.3.tar.gz | tar -xz -C /tmp \
+    && cd /tmp/sqlite-version-3.8.3/ \
+    && ./configure --prefix=/usr --libdir=/usr/lib64 \
+    && make -j32 \
+    && make install \
+    && cd \
+    && rm -rf /tmp/sqlite-version-3.8.3/
 # Latest Python
 RUN wget -qO- https://www.openssl.org/source/openssl-1.1.1w.tar.gz | tar -xz -C /tmp/ \
     && cd /tmp/openssl-1.1.1w \
@@ -151,7 +159,9 @@ RUN wget -qO- https://www.openssl.org/source/openssl-1.1.1w.tar.gz | tar -xz -C 
 ENV LD_LIBRARY_PATH=/usr/local/openssl/lib:$LD_LIBRARY_PATH
 ENV PATH=/usr/local/openssl/bin:$PATH
 RUN yum -y install libffi-devel \
+    && yum -y install epel-release \
     && yum -y install sqlite-devel \
+    && yum -y install zlib-devel \
     && wget -qO- https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz | tar -xz -C /tmp \
     && cd /tmp/Python-3.11.4 \
     && LDFLAGS="${LDFLAGS} -Wl,-rpath=/usr/local/openssl/lib" ./configure --with-openssl=/usr/local/openssl \
@@ -186,8 +196,6 @@ RUN yum -y install rh-python36-python-tkinter.x86_64 \
     && pip3 install jupyterlab \
     && pip3 install ipyflow \
     && pip3 install ipykernel \
-    && pip3 install dvc
-# && sudo pip install tensorflow[and-cuda] tensorflow-datasets matplotlib visualkeras pydot"
-#TENSORFLOWPIP1="sudo pip install scipy ipympl jupyter jupyterlab papermill ipyflow ipykernel && sudo pip install dvc"
-# externpro
+    && pip3 install dvc \
+    && pip3 install dvc-ssh
 ENTRYPOINT ["/bin/bash", "/usr/local/bpbin/entry.sh"]
